@@ -50,7 +50,7 @@ internal static class DetourPatch
         //SNet_Slot? slot = pSlot != null ? *pSlot != 0 ? new SNet_Slot(*pSlot) : null : null;
         Il2CppReferenceArray<SNet_Slot> slots = new(slots_ptr);
 
-        Logger.Info($"Player joining: {player.NickName} - {player.Lookup}");
+        Logger.Info($"Slot managing player: {player.NickName} - {player.Lookup}");
 
         // checks for custom slot first otherwise CustomSlot may not be set
         // i'm pretty sure the IsMaster check is just a sanity thing, i'm pretty sure only host uses Assign
@@ -59,6 +59,27 @@ internal static class DetourPatch
             int ChosenSlot = player.IsLocal ? SlotConfig.Slot : CustomSlot;
 
             SNet_Slot chosen_slot = slots[ChosenSlot];
+
+            // only do this if not local so that it doesn't break if you happen to try to join on a slot that was previously locked
+            if (!__instance.IsHumanPermittedInSlot(ChosenSlot) && !player.IsLocal)
+            {
+                Logger.Info($"Player {player.NickName}'s chosen slot ({EntryPoint.SlotToDescriptor[ChosenSlot]}) doesn't allow humans, using normal assignment");
+                return true;
+            }
+                
+            if (chosen_slot.player != null)
+            {
+                if (chosen_slot.player.IsBot)
+                    SNet.Sync.TryKickBot(chosen_slot.player);
+                else
+                {
+                    Logger.Info($"Player {player.NickName}'s chosen slot ({EntryPoint.SlotToDescriptor[ChosenSlot]}) occupied by human, using normal assignment");
+                    return true;
+                }
+                    
+            }
+                
+
             chosen_slot.player = player;
             if (type == SNet_SlotType.PlayerSlot)
                 player.PlayerSlot = chosen_slot;
@@ -85,10 +106,10 @@ internal class HikariaCoreHarmonyPatch
         if (EventListener == null) throw new System.Exception("Could not find GameEventListener");
 
         var DetourClass = EventListener.GetNestedType("SNet_PlayerSlotManager__Internal_ManageSlot__NativeDetour", BindingFlags.NonPublic);
-        if (DetourClass == null) throw new System.Exception("Could not find DetourMethod class");
+        if (DetourClass == null) throw new System.Exception("Could not find Detour class");
 
         var DetourMethod = DetourClass.GetMethod("Detour", BindingFlags.NonPublic | BindingFlags.Instance);
-        if (DetourMethod == null) throw new System.Exception("Could not find DetourMethod method");
+        if (DetourMethod == null) throw new System.Exception("Could not find Detour method");
         return DetourMethod;
     }
 

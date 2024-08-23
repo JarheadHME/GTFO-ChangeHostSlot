@@ -13,12 +13,14 @@ namespace ChangeHostSlot
     // and harmony patching over it works anyway, maybe it's just load order
     internal class EntryPoint : BasePlugin
     {
+        public static readonly string[] SlotToDescriptor = new string[] { "Pink/Woods", "Green/Dauda", "Blue/Hackett", "Purple/Bishop" };
+
         private Harmony _Harmony = null;
         private static readonly string CustomPlayerSlotsPath = Path.Join(Paths.ConfigPath, "ChangeHostSlotPlayers.json");
         public override void Load()
         {
             SlotConfig.CreateBind();
-            Logger.Info($"Patching on slot {SlotConfig.Slot} ({new string[] { "Pink/Woods", "Green/Dauda", "Blue/Hackett", "Purple/Bishop" }[SlotConfig.Slot]})");
+            Logger.Info($"Patching on slot {SlotConfig.Slot} ({SlotToDescriptor[SlotConfig.Slot]})");
 
             _Harmony = new Harmony($"{VersionInfo.RootNamespace}.Harmony");
             try
